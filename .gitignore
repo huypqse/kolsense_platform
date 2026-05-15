@@ -1,0 +1,14 @@
+.env
+bin/
+*.exe
+
+# Air live-reload
+tmp/
+
+# Test binaries
+*.test
+*.out
+
+# OS
+.DS_Store
+Thumbs.db

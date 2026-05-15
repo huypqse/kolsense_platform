@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: kolsense-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kolsense
+      POSTGRES_USER: kolsense
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./internal/vectorstore/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kolsense"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kolsense-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # After first start, pull models:
+    #   docker exec kolsense-ollama ollama pull bge-m3
+    #   docker exec kolsense-ollama ollama pull qwen2.5:14b
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kolsense-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://kolsense:secret@postgres:5432/kolsense?sslmode=disable
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  pg_data:
+  ollama_data:
