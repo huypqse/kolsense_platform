@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	defaultWindowTokens = 512
+	defaultWindowTokens  = 512
 	defaultOverlapTokens = 64
 )
 
 // ChunkConfig configures the sliding-window chunker.
 type ChunkConfig struct {
-	WindowTokens int // target chunk size in whitespace-delimited tokens
+	WindowTokens  int // target chunk size in whitespace-delimited tokens
 	OverlapTokens int // number of tokens to repeat at the start of next chunk
 }
 

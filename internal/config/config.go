@@ -93,7 +93,7 @@ func Load() (*Config, error) {
 	v.SetDefault("DATABASE_MAX_CONNS", 20)
 	v.SetDefault("DATABASE_MIN_CONNS", 2)
 	v.SetDefault("EMBEDDING_PROVIDER", "ollama")
-	v.SetDefault("EMBEDDING_DIMENSIONS", 1536)
+	v.SetDefault("EMBEDDING_DIMENSIONS", 1024)
 	v.SetDefault("OLLAMA_BASE_URL", "http://localhost:11434")
 	v.SetDefault("OLLAMA_EMBEDDING_MODEL", "bge-m3")
 	v.SetDefault("OLLAMA_LLM_MODEL", "qwen2.5:14b")
@@ -120,8 +120,8 @@ func Load() (*Config, error) {
 		Server: ServerConfig{
 			Host:         v.GetString("SERVER_HOST"),
 			Port:         v.GetInt("SERVER_PORT"),
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 60 * time.Second,
+			ReadTimeout:  600 * time.Second,
+			WriteTimeout: 600 * time.Second,
 		},
 		Database: DatabaseConfig{
 			URL:      v.GetString("DATABASE_URL"),

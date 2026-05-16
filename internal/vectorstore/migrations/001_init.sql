@@ -30,12 +30,12 @@ CREATE TABLE IF NOT EXISTS kol_chunks (
     page_num    INT         NOT NULL DEFAULT 0,
     text        TEXT        NOT NULL,
     token_count INT         NOT NULL DEFAULT 0,
-    embedding   VECTOR(1536),
+    embedding   VECTOR(1024),
     metadata    JSONB       NOT NULL DEFAULT '{}',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- HNSW index tuned for 2M vectors at 1536 dims
+-- HNSW index tuned for 2M vectors at 1024 dims
 -- m=16: connections per node; ef_construction=128: build-time recall
 CREATE INDEX IF NOT EXISTS idx_kol_chunks_embedding
     ON kol_chunks USING hnsw (embedding vector_cosine_ops)

@@ -100,8 +100,11 @@ func (h *BriefHandler) Analyze(c *gin.Context) {
 	// Step 2: Similarity search
 	searchResult, err := h.searcher.Search(ctx, parsedBrief, req.TopK*2)
 	if err != nil {
-		h.log.Error("search failed", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "search failed"})
+		h.log.Error("search failed", zap.Error(err), zap.Any("brief", parsedBrief))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "search failed",
+			"details": err.Error(),
+		})
 		return
 	}
 

@@ -1,0 +1,9 @@
+{"level":"info","ts":1778922538.7500784,"caller":"api/main.go:30","msg":"config loaded","embedding_provider":"ollama","llm_provider":"ollama","addr":"0.0.0.0:8083"}
+{"level":"info","ts":1778922538.7637622,"caller":"api/main.go:44","msg":"postgres connected"}
+{"level":"info","ts":1778922538.7638507,"caller":"api/main.go:62","msg":"embedder: ollama","model":"bge-m3"}
+{"level":"info","ts":1778922538.763872,"caller":"api/main.go:78","msg":"llm: ollama","model":"qwen2.5:7b"}
+{"level":"info","ts":1778922538.7639225,"caller":"api/main.go:91","msg":"server starting","addr":"0.0.0.0:8083"}
+{"level":"info","ts":1778922569.643656,"caller":"handlers/brief.go:95","msg":"brief parsed","strategy":"llm_fallback","confidence":0.3333333333333333}
+{"level":"info","ts":1778922705.5816414,"caller":"middleware/middleware.go:38","msg":"request","status":200,"method":"POST","path":"/api/v1/brief/analyze","query":"","ip":"127.0.0.1","latency":137.634883816,"body_size":2981}
+{"level":"info","ts":1778922705.9303398,"caller":"api/main.go:102","msg":"shutting down server..."}
+{"level":"info","ts":1778922705.930764,"caller":"api/main.go:109","msg":"server stopped"}

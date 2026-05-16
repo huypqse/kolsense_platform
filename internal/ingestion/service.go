@@ -24,7 +24,7 @@ type IngestConfig struct {
 func DefaultIngestConfig() IngestConfig {
 	return IngestConfig{
 		ChunkCfg:   DefaultChunkConfig(),
-		EmbedBatch: 32,
+		EmbedBatch: 2,
 	}
 }
 
@@ -130,7 +130,17 @@ func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestCon
 		}
 	}
 
-	// Step 4: Store
+	// Step 4: Ensure KOL Profile exists before storing chunks
+	profile := vectorstore.KOLProfile{
+		Name:     kolName,
+		Platform: []string{},
+		Category: []string{},
+		Metadata: map[string]any{},
+	}
+	if err := s.store.UpsertKOLProfile(ctx, profile); err != nil {
+		return 0, fmt.Errorf("ingest %s: upsert kol profile: %w", filePath, err)
+	}
+
 	if err := s.store.UpsertChunks(ctx, chunks); err != nil {
 		return 0, fmt.Errorf("ingest %s: upsert chunks: %w", filePath, err)
 	}
