@@ -24,7 +24,7 @@ type IngestConfig struct {
 func DefaultIngestConfig() IngestConfig {
 	return IngestConfig{
 		ChunkCfg:   DefaultChunkConfig(),
-		EmbedBatch: 2,
+		EmbedBatch: 32,
 	}
 }
 
@@ -160,10 +160,29 @@ type rawChunk struct {
 }
 
 // kolNameFromFile derives a KOL name from the filename.
-// e.g. "Lumire_Collective__KOL_Performance_Analytics.pdf" → "Lumire Collective"
+//
+// Brand-wide documents (campaign reports, brand guidelines, audience insights)
+// are attributed to the organisation itself rather than a KOL, so they return
+// "Lumiere Collective".  Individual KOL files that use the double-underscore
+// separator convention (e.g. "Priya_Subramaniam__Profile.pdf") follow the
+// original extraction logic.
+//
+// Examples:
+//   "01_lumiere_campaign_report_glow_forward_q2_2025.pdf" → "Lumiere Collective"
+//   "Priya_Subramaniam__Profile.pdf"                      → "Priya Subramaniam — Profile"
 func kolNameFromFile(filePath string) string {
+	lower := strings.ToLower(filepath.Base(filePath))
+
+	// Brand-wide document keywords — return the organisation name.
+	brandKeywords := []string{"campaign", "brand", "audience", "guideline", "insight", "report"}
+	for _, kw := range brandKeywords {
+		if strings.Contains(lower, kw) {
+			return "Lumiere Collective"
+		}
+	}
+
+	// Individual KOL file: derive name from the base filename.
 	base := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
-	// Replace underscores with spaces, collapse double spaces
 	name := strings.ReplaceAll(base, "__", " — ")
 	name = strings.ReplaceAll(name, "_", " ")
 	return strings.TrimSpace(name)

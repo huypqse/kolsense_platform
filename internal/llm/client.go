@@ -1,5 +1,5 @@
 // Package llm defines the LLM client interface and its implementations.
-// Supported backends: Ollama (local dev) and DashScope (production).
+// Supported backends: Ollama (local dev), DashScope (production), and Gemini.
 package llm
 
 import "context"

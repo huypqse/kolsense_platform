@@ -100,12 +100,12 @@ rag-systems/
 
 ## Provider Configuration
 
-| Setting | Ollama (local dev) | DashScope (production) |
-|---------|-------------------|----------------------|
-| `EMBEDDING_PROVIDER` | `ollama` | `dashscope` |
-| `LLM_PROVIDER` | `ollama` | `dashscope` |
-| Model (embed) | `bge-m3` | `text-embedding-v3` |
-| Model (LLM) | `qwen2.5:14b` | `qwen-plus` |
+| Setting | Ollama (local dev) | DashScope (production) | Gemini (API) |
+|---------|-------------------|----------------------|--------------|
+| `EMBEDDING_PROVIDER` | `ollama` | `dashscope` | `ollama` or `dashscope` |
+| `LLM_PROVIDER` | `ollama` | `dashscope` | `gemini` |
+| Model (embed) | `bge-m3` | `text-embedding-v3` | N/A |
+| Model (LLM) | `qwen2.5:14b` | `qwen-plus` | `gemini-2.5-flash` |
 
 ---
 

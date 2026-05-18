@@ -14,8 +14,8 @@ import (
 // Parser extracts structured fields from free-text campaign briefs.
 // Strategy: rule-based extraction first; if confidence < threshold, fall back to LLM.
 type Parser struct {
-	llmClient   llm.Client
-	threshold   float64 // confidence threshold for LLM fallback (0.0–1.0)
+	llmClient llm.Client
+	threshold float64 // confidence threshold for LLM fallback (0.0–1.0)
 }
 
 // NewParser creates a hybrid Parser.
@@ -76,7 +76,7 @@ var (
 	reBranding   = regexp.MustCompile(`(?i)\b(branding|thương hiệu)\b`)
 
 	// Budget: captures numbers followed by VND/triệu/tỷ keywords
-	reBudget = regexp.MustCompile(`(?i)ngân sách[:\s]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?[\s\-–]+(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
+	reBudget       = regexp.MustCompile(`(?i)ngân sách[:\s]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?[\s\-–]+(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
 	reBudgetSingle = regexp.MustCompile(`(?i)ngân sách[:\s]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
 
 	// Gender
@@ -142,42 +142,71 @@ func ruleBasedParse(text string) (*CampaignBrief, float64) {
 
 func extractPlatforms(text string) []Platform {
 	var p []Platform
-	if reTikTok.MatchString(text)    { p = append(p, PlatformTikTok) }
-	if reInstagram.MatchString(text) { p = append(p, PlatformInstagram) }
-	if reYouTube.MatchString(text)   { p = append(p, PlatformYouTube) }
-	if reFacebook.MatchString(text)  { p = append(p, PlatformFacebook) }
+	if reTikTok.MatchString(text) {
+		p = append(p, PlatformTikTok)
+	}
+	if reInstagram.MatchString(text) {
+		p = append(p, PlatformInstagram)
+	}
+	if reYouTube.MatchString(text) {
+		p = append(p, PlatformYouTube)
+	}
+	if reFacebook.MatchString(text) {
+		p = append(p, PlatformFacebook)
+	}
 	return p
 }
 
 func extractCategories(text string) []Category {
 	var c []Category
-	if reBeauty.MatchString(text)    { c = append(c, CategoryBeauty) }
-	if reFashion.MatchString(text)   { c = append(c, CategoryFashion) }
-	if reLifestyle.MatchString(text) { c = append(c, CategoryLifestyle) }
-	if reTech.MatchString(text)      { c = append(c, CategoryTech) }
-	if reFood.MatchString(text)      { c = append(c, CategoryFood) }
-	if reFitness.MatchString(text)   { c = append(c, CategoryFitness) }
-	if reTravel.MatchString(text)    { c = append(c, CategoryTravel) }
+	if reBeauty.MatchString(text) {
+		c = append(c, CategoryBeauty)
+	}
+	if reFashion.MatchString(text) {
+		c = append(c, CategoryFashion)
+	}
+	if reLifestyle.MatchString(text) {
+		c = append(c, CategoryLifestyle)
+	}
+	if reTech.MatchString(text) {
+		c = append(c, CategoryTech)
+	}
+	if reFood.MatchString(text) {
+		c = append(c, CategoryFood)
+	}
+	if reFitness.MatchString(text) {
+		c = append(c, CategoryFitness)
+	}
+	if reTravel.MatchString(text) {
+		c = append(c, CategoryTravel)
+	}
 	return c
 }
 
 func extractGoal(text string) CampaignGoal {
 	switch {
-	case reConversion.MatchString(text):  return GoalConversion
-	case reAwareness.MatchString(text):   return GoalAwareness
-	case reEngagement.MatchString(text):  return GoalEngagement
-	case reBranding.MatchString(text):    return GoalBranding
+	case reConversion.MatchString(text):
+		return GoalConversion
+	case reAwareness.MatchString(text):
+		return GoalAwareness
+	case reEngagement.MatchString(text):
+		return GoalEngagement
+	case reBranding.MatchString(text):
+		return GoalBranding
 	}
 	return ""
 }
 
 func extractGender(text string) string {
 	hasFemale := reFemale.MatchString(text)
-	hasMale   := reMale.MatchString(text)
+	hasMale := reMale.MatchString(text)
 	switch {
-	case hasFemale && hasMale: return "all"
-	case hasFemale:            return "female"
-	case hasMale:              return "male"
+	case hasFemale && hasMale:
+		return "all"
+	case hasFemale:
+		return "female"
+	case hasMale:
+		return "male"
 	}
 	return ""
 }

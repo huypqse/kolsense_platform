@@ -27,17 +27,17 @@ type ScoreInput struct {
 // Score computes a ScoredKOL for every profile in the input and returns them
 // sorted by descending FitScore with 1-based Rank assigned.
 func (s *Scorer) Score(in ScoreInput) []ScoredKOL {
-	// Normalisation ranges derived from the candidate set
-	maxEngagement := maxEngagementRate(in.Profiles)
-	maxROI        := maxROI(in.Profiles)
+	// Fixed global maximums for normalisation to ensure deterministic scoring.
+	const globalMaxEngagement = 0.15 // 15%
+	const globalMaxROI = 10.0        // 10x ROI
 
 	var results []ScoredKOL
 	for name, profile := range in.Profiles {
 		simScore := in.SimScores[name]
 		bd := ScoreBreakdown{
 			Similarity:    simScore,
-			Engagement:    normalise(profile.AvgEngagement, 0, maxEngagement),
-			ROI:           normalise(profile.AvgROI, 0, maxROI),
+			Engagement:    normalise(profile.AvgEngagement, 0, globalMaxEngagement),
+			ROI:           normalise(profile.AvgROI, 0, globalMaxROI),
 			BudgetFit:     budgetFit(profile, in.Brief.Budget),
 			AudienceMatch: 0.5, // placeholder — extend with demographic data
 		}
@@ -84,29 +84,14 @@ func budgetFit(p vectorstore.KOLProfile, b brief.BudgetRange) float64 {
 	if b.MaxVND == 0 {
 		return 0.5 // no budget constraint
 	}
-	// Full fit: KOL fee max <= brief budget max
-	if p.FeeMaxVND <= b.MaxVND {
+	// Full fit: KOL's minimum fee is within budget
+	if p.FeeMinVND <= b.MaxVND {
 		return 1.0
 	}
 	// Partial fit: fee slightly over budget — linear decay
-	overRatio := float64(p.FeeMaxVND-b.MaxVND) / float64(b.MaxVND)
+	overRatio := float64(p.FeeMinVND-b.MaxVND) / float64(b.MaxVND)
 	fit := 1.0 - overRatio
 	if fit < 0 { return 0 }
 	return fit
 }
 
-func maxEngagementRate(profiles map[string]vectorstore.KOLProfile) float64 {
-	var max float64
-	for _, p := range profiles {
-		if p.AvgEngagement > max { max = p.AvgEngagement }
-	}
-	return max
-}
-
-func maxROI(profiles map[string]vectorstore.KOLProfile) float64 {
-	var max float64
-	for _, p := range profiles {
-		if p.AvgROI > max { max = p.AvgROI }
-	}
-	return max
-}

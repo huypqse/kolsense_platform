@@ -73,6 +73,14 @@ func main() {
 			cfg.LLM.Temperature,
 		)
 		log.Info("llm: dashscope", zap.String("model", cfg.LLM.DashScopeModel))
+	case config.ProviderGemini:
+		llmClient = llm.NewGeminiClient(
+			cfg.LLM.GeminiAPIKey,
+			cfg.LLM.GeminiModel,
+			cfg.LLM.MaxTokens,
+			cfg.LLM.Temperature,
+		)
+		log.Info("llm: gemini", zap.String("model", cfg.LLM.GeminiModel))
 	default:
 		llmClient = llm.NewOllamaClient(cfg.LLM.OllamaBaseURL, cfg.LLM.OllamaModel)
 		log.Info("llm: ollama", zap.String("model", cfg.LLM.OllamaModel))

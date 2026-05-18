@@ -50,7 +50,13 @@ func (s *Searcher) Search(ctx context.Context, b *brief.CampaignBrief, topK int)
 	}
 
 	// 3. pgvector similarity search
-	chunks, err := s.store.SimilaritySearch(ctx, queryVec, filter, topK, s.efSearch)
+	// Fetch a much larger pool of chunks (topK * 10) to prevent a single KOL
+	// with many relevant chunks from dominating the results and hiding other candidates.
+	searchLimit := topK * 10
+	if searchLimit < 50 {
+		searchLimit = 50
+	}
+	chunks, err := s.store.SimilaritySearch(ctx, queryVec, filter, searchLimit, s.efSearch)
 	if err != nil {
 		return nil, fmt.Errorf("search: similarity search: %w", err)
 	}

@@ -14,6 +14,7 @@ type Provider string
 const (
 	ProviderOllama    Provider = "ollama"
 	ProviderDashScope Provider = "dashscope"
+	ProviderGemini    Provider = "gemini"
 )
 
 // Config is the top-level application configuration.
@@ -65,6 +66,10 @@ type LLMConfig struct {
 	DashScopeModel  string
 	MaxTokens       int
 	Temperature     float64
+
+	// Gemini
+	GeminiAPIKey string
+	GeminiModel  string
 }
 
 type ParserConfig struct {
@@ -73,8 +78,8 @@ type ParserConfig struct {
 }
 
 type SearchConfig struct {
-	DefaultTopK   int
-	HNSWEfSearch  int
+	DefaultTopK  int
+	HNSWEfSearch int
 }
 
 type LogConfig struct {
@@ -101,6 +106,7 @@ func Load() (*Config, error) {
 	v.SetDefault("DASHSCOPE_LLM_MODEL", "qwen-plus")
 	v.SetDefault("DASHSCOPE_LLM_MAX_TOKENS", 2048)
 	v.SetDefault("DASHSCOPE_LLM_TEMPERATURE", 0.3)
+	v.SetDefault("GEMINI_LLM_MODEL", "gemini-2.5-flash")
 	v.SetDefault("LLM_PROVIDER", "ollama")
 	v.SetDefault("PARSER_CONFIDENCE_THRESHOLD", 0.75)
 	v.SetDefault("SEARCH_DEFAULT_TOP_K", 10)
@@ -144,6 +150,8 @@ func Load() (*Config, error) {
 			DashScopeModel:  v.GetString("DASHSCOPE_LLM_MODEL"),
 			MaxTokens:       v.GetInt("DASHSCOPE_LLM_MAX_TOKENS"),
 			Temperature:     v.GetFloat64("DASHSCOPE_LLM_TEMPERATURE"),
+			GeminiAPIKey:    v.GetString("GEMINI_API_KEY"),
+			GeminiModel:     v.GetString("GEMINI_LLM_MODEL"),
 		},
 		Parser: ParserConfig{
 			ConfidenceThreshold: v.GetFloat64("PARSER_CONFIDENCE_THRESHOLD"),
@@ -173,6 +181,9 @@ func (c *Config) validate() error {
 	}
 	if c.LLM.Provider == ProviderDashScope && c.LLM.DashScopeAPIKey == "" {
 		return fmt.Errorf("config: DASHSCOPE_API_KEY is required when LLM_PROVIDER=dashscope")
+	}
+	if c.LLM.Provider == ProviderGemini && c.LLM.GeminiAPIKey == "" {
+		return fmt.Errorf("config: GEMINI_API_KEY is required when LLM_PROVIDER=gemini")
 	}
 	return nil
 }
