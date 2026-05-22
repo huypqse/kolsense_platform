@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	dir     := flag.String("dir", "./data", "Directory containing PDF files to ingest")
+	dir     := flag.String("dir", "./data", "Directory containing PDF/Markdown files to ingest")
 	kolName := flag.String("kol", "", "KOL name override (derived from filename if empty)")
 	docType := flag.String("doc-type", "", "Document type override (auto-detected if empty)")
 	flag.Parse()
@@ -55,12 +55,13 @@ func main() {
 
 	svc := ingestion.NewService(embedder, store, log)
 
-	// Collect PDF files
-	pattern := filepath.Join(*dir, "*.pdf")
-	files, err := filepath.Glob(pattern)
-	if err != nil || len(files) == 0 {
-		log.Fatal("no PDF files found", zap.String("dir", *dir))
+	// Collect PDF and Markdown files from the target directory.
+	files := collectFiles(*dir, log)
+	if len(files) == 0 {
+		log.Fatal("no ingestible files found (*.pdf, *.md)",
+			zap.String("dir", *dir))
 	}
+	log.Info("files to ingest", zap.Int("count", len(files)))
 
 	ingestCfg := ingestion.DefaultIngestConfig()
 	ingestCfg.KOLName = *kolName
@@ -80,4 +81,19 @@ func main() {
 	}
 	fmt.Printf("\nTotal chunks ingested: %d\n", total)
 	os.Exit(0)
+}
+
+// collectFiles returns all *.pdf and *.md files inside dir, sorted by name.
+func collectFiles(dir string, log *zap.Logger) []string {
+	var files []string
+	patterns := []string{"*.pdf", "*.md", "*.markdown"}
+	for _, pat := range patterns {
+		matches, err := filepath.Glob(filepath.Join(dir, pat))
+		if err != nil {
+			log.Warn("glob error", zap.String("pattern", pat), zap.Error(err))
+			continue
+		}
+		files = append(files, matches...)
+	}
+	return files
 }

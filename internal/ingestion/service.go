@@ -14,10 +14,10 @@ import (
 
 // IngestConfig holds parameters for the ingestion pipeline.
 type IngestConfig struct {
-	ChunkCfg    ChunkConfig
-	KOLName     string  // override KOL name; if empty, derived from filename
-	DocType     vectorstore.DocType
-	EmbedBatch  int     // number of chunks per embedding batch call
+	ChunkCfg   ChunkConfig
+	KOLName    string          // override KOL name; if empty, derived from filename
+	DocType    vectorstore.DocType
+	EmbedBatch int             // number of chunks per embedding batch call
 }
 
 // DefaultIngestConfig returns a sensible default IngestConfig.
@@ -29,13 +29,14 @@ func DefaultIngestConfig() IngestConfig {
 }
 
 // Service orchestrates the full ingestion pipeline:
-// PDF → pages → chunks → embeddings → vectorstore.
+// File (PDF or Markdown) → pages → chunks → embeddings → vectorstore.
 type Service struct {
-	parser   *PDFParser
-	chunker  *Chunker
-	embedder embedding.Embedder
-	store    vectorstore.Store
-	log      *zap.Logger
+	pdfParser *PDFParser
+	mdParser  *MDParser
+	chunker   *Chunker
+	embedder  embedding.Embedder
+	store     vectorstore.Store
+	log       *zap.Logger
 }
 
 // NewService constructs a new ingestion Service.
@@ -45,15 +46,16 @@ func NewService(
 	log *zap.Logger,
 ) *Service {
 	return &Service{
-		parser:   NewPDFParser(),
-		chunker:  NewChunker(DefaultChunkConfig()),
-		embedder: embedder,
-		store:    store,
-		log:      log,
+		pdfParser: NewPDFParser(),
+		mdParser:  NewMDParser(),
+		chunker:   NewChunker(DefaultChunkConfig()),
+		embedder:  embedder,
+		store:     store,
+		log:       log,
 	}
 }
 
-// IngestFile processes a single PDF file through the full pipeline.
+// IngestFile processes a single PDF or Markdown file through the full pipeline.
 func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestConfig) (int, error) {
 	kolName := cfg.KOLName
 	if kolName == "" {
@@ -64,20 +66,38 @@ func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestCon
 		docType = docTypeFromFile(filePath)
 	}
 
-	s.log.Info("ingesting PDF",
-		zap.String("file", filePath),
-		zap.String("kol", kolName),
-		zap.String("doc_type", string(docType)),
-	)
+	ext := strings.ToLower(filepath.Ext(filePath))
+	isMD := ext == ".md" || ext == ".markdown"
 
-	// Step 1: Extract pages
-	pages, err := s.parser.ParseFile(filePath)
-	if err != nil {
-		return 0, fmt.Errorf("ingest %s: parse PDF: %w", filePath, err)
+	if isMD {
+		s.log.Info("ingesting Markdown",
+			zap.String("file", filePath),
+			zap.String("kol", kolName),
+			zap.String("doc_type", string(docType)),
+		)
+	} else {
+		s.log.Info("ingesting PDF",
+			zap.String("file", filePath),
+			zap.String("kol", kolName),
+			zap.String("doc_type", string(docType)),
+		)
 	}
-	s.log.Debug("extracted pages", zap.Int("count", len(pages)))
 
-	// Step 2: Chunk all pages
+	// ── Step 1: Parse file into page-text sections ──────────────────────────
+	var pages []PageText
+	var err error
+
+	if isMD {
+		pages, err = s.mdParser.ParseFile(filePath)
+	} else {
+		pages, err = s.pdfParser.ParseFile(filePath)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("ingest %s: parse: %w", filePath, err)
+	}
+	s.log.Debug("extracted sections/pages", zap.Int("count", len(pages)))
+
+	// ── Step 2: Chunk all pages ──────────────────────────────────────────────
 	var rawChunks []rawChunk
 	for _, page := range pages {
 		for _, tc := range s.chunker.Chunk(page.Text) {
@@ -94,7 +114,7 @@ func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestCon
 	}
 	s.log.Debug("produced chunks", zap.Int("count", len(rawChunks)))
 
-	// Step 3: Embed in batches
+	// ── Step 3: Embed in batches ─────────────────────────────────────────────
 	batchSize := cfg.EmbedBatch
 	if batchSize <= 0 {
 		batchSize = 32
@@ -130,17 +150,17 @@ func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestCon
 		}
 	}
 
-	// Step 4: Ensure KOL Profile exists before storing chunks
-	profile := vectorstore.KOLProfile{
-		Name:     kolName,
-		Platform: []string{},
-		Category: []string{},
-		Metadata: map[string]any{},
-	}
+	// ── Step 4: Upsert KOL profile ───────────────────────────────────────────
+	// For Markdown KOL profile files, attempt to parse the Summary Profile Card
+	// so we populate platform, category, engagement, ROI and fee data that the
+	// scoring engine depends on. For brand-wide documents and PDF files we fall
+	// back to an empty skeleton — the name is still required for the FK.
+	profile := buildProfile(kolName, filePath, isMD)
 	if err := s.store.UpsertKOLProfile(ctx, profile); err != nil {
 		return 0, fmt.Errorf("ingest %s: upsert kol profile: %w", filePath, err)
 	}
 
+	// ── Step 5: Store chunks ─────────────────────────────────────────────────
 	if err := s.store.UpsertChunks(ctx, chunks); err != nil {
 		return 0, fmt.Errorf("ingest %s: upsert chunks: %w", filePath, err)
 	}
@@ -150,6 +170,23 @@ func (s *Service) IngestFile(ctx context.Context, filePath string, cfg IngestCon
 		zap.Int("chunks_stored", len(chunks)),
 	)
 	return len(chunks), nil
+}
+
+// buildProfile returns a KOLProfile for the ingested file.
+// For Markdown files it tries to parse the "## Summary Profile Card" table;
+// for all other files it returns a minimal skeleton.
+func buildProfile(kolName, filePath string, isMD bool) vectorstore.KOLProfile {
+	if isMD {
+		if p := ExtractProfileFromMD(filePath, kolName); p != nil {
+			return *p
+		}
+	}
+	return vectorstore.KOLProfile{
+		Name:     kolName,
+		Platform: []string{},
+		Category: []string{},
+		Metadata: map[string]any{},
+	}
 }
 
 // rawChunk is an intermediate representation before embedding.
@@ -163,13 +200,13 @@ type rawChunk struct {
 //
 // Brand-wide documents (campaign reports, brand guidelines, audience insights)
 // are attributed to the organisation itself rather than a KOL, so they return
-// "Lumiere Collective".  Individual KOL files that use the double-underscore
-// separator convention (e.g. "Priya_Subramaniam__Profile.pdf") follow the
-// original extraction logic.
+// "Lumiere Collective".  Individual KOL files that use the underscore-separator
+// convention (e.g. "Priya_Subramaniam.md") have underscores replaced with spaces.
 //
 // Examples:
-//   "01_lumiere_campaign_report_glow_forward_q2_2025.pdf" → "Lumiere Collective"
-//   "Priya_Subramaniam__Profile.pdf"                      → "Priya Subramaniam — Profile"
+//
+//	"lumiere_campaign_report_glow_forward_2025.md" → "Lumiere Collective"
+//	"Priya_Subramaniam.md"                         → "Priya Subramaniam"
 func kolNameFromFile(filePath string) string {
 	lower := strings.ToLower(filepath.Base(filePath))
 
