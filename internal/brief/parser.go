@@ -76,8 +76,8 @@ var (
 	reBranding   = regexp.MustCompile(`(?i)\b(branding|thương hiệu)\b`)
 
 	// Budget: captures numbers followed by VND/triệu/tỷ keywords
-	reBudget       = regexp.MustCompile(`(?i)ngân sách[:\s]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?[\s\-–]+(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
-	reBudgetSingle = regexp.MustCompile(`(?i)ngân sách[:\s]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
+	reBudget       = regexp.MustCompile(`(?i)ngân sách.*?(?:tầm|khoảng|từ)?[\s:]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?[\s\-–]+(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
+	reBudgetSingle = regexp.MustCompile(`(?i)ngân sách.*?(?:tầm|khoảng)?[\s:]*(\d[\d.,]*)\s*(triệu|tỷ|million|billion|vnd|đồng)?`)
 
 	// Gender
 	reFemale = regexp.MustCompile(`(?i)\b(nữ|female|women|phụ nữ)\b`)
@@ -198,8 +198,12 @@ func extractGoal(text string) CampaignGoal {
 }
 
 func extractGender(text string) string {
-	hasFemale := reFemale.MatchString(text)
-	hasMale := reMale.MatchString(text)
+	// Tránh từ "Nam" trong "Việt Nam" bị nhận nhầm thành giới tính nam
+	textLower := strings.ToLower(text)
+	textLower = strings.ReplaceAll(textLower, "việt nam", "vietnam")
+	
+	hasFemale := reFemale.MatchString(textLower)
+	hasMale := reMale.MatchString(textLower)
 	switch {
 	case hasFemale && hasMale:
 		return "all"
@@ -279,8 +283,8 @@ type llmExtractionResult struct {
 	BudgetMinVND int64    `json:"budget_min_vnd"`
 	BudgetMaxVND int64    `json:"budget_max_vnd"`
 	Gender       string   `json:"gender"`
-	AgeMin       int      `json:"age_min"`
-	AgeMax       int      `json:"age_max"`
+	AgeMin       *int     `json:"age_min"`
+	AgeMax       *int     `json:"age_max"`
 	Regions      []string `json:"regions"`
 }
 
@@ -310,8 +314,15 @@ func (p *Parser) llmFallback(ctx context.Context, rawText string) (*CampaignBrie
 			Regions: result.Regions,
 		},
 	}
-	if result.AgeMin > 0 || result.AgeMax > 0 {
-		brief.Audience.AgeRange = [2]int{result.AgeMin, result.AgeMax}
+	if result.AgeMin != nil || result.AgeMax != nil {
+		min, max := 0, 0
+		if result.AgeMin != nil {
+			min = *result.AgeMin
+		}
+		if result.AgeMax != nil {
+			max = *result.AgeMax
+		}
+		brief.Audience.AgeRange = [2]int{min, max}
 	}
 	for _, c := range result.Categories {
 		brief.Categories = append(brief.Categories, Category(c))

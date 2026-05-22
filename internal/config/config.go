@@ -106,7 +106,7 @@ func Load() (*Config, error) {
 	v.SetDefault("DASHSCOPE_LLM_MODEL", "qwen-plus")
 	v.SetDefault("DASHSCOPE_LLM_MAX_TOKENS", 2048)
 	v.SetDefault("DASHSCOPE_LLM_TEMPERATURE", 0.3)
-	v.SetDefault("GEMINI_LLM_MODEL", "gemini-2.5-flash")
+	v.SetDefault("GEMINI_LLM_MODEL", "gemini-1.5-flash")
 	v.SetDefault("LLM_PROVIDER", "gemini")
 	v.SetDefault("PARSER_CONFIDENCE_THRESHOLD", 0.75)
 	v.SetDefault("SEARCH_DEFAULT_TOP_K", 10)
