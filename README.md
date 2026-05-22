@@ -10,7 +10,7 @@ KolSense is a RAG (Retrieval-Augmented Generation) platform that matches KOL (Ke
 
 ```
 Tầng 1 — Data Ingestion:    PDF → pdfcpu parser → chunker → embedder → pgvector
-Tầng 2 — RAG Core Engine:   Brief → embed → pgvector search → score → Qwen LLM
+Tầng 2 — RAG Core Engine:   Brief → embed → pgvector search → score → Gemini LLM
 Tầng 3 — Output & API:      REST API → JSON shortlist + Markdown report
 ```
 
@@ -33,7 +33,7 @@ cp .env.example .env
 ### 2. Start infrastructure
 ```bash
 make up          # starts postgres/pgvector + ollama
-make pull-models # pulls bge-m3 and qwen2.5:14b into ollama
+make pull-models # pulls bge-m3 embedding model into ollama
 ```
 
 ### 3. Ingest sample PDFs
@@ -100,12 +100,12 @@ rag-systems/
 
 ## Provider Configuration
 
-| Setting | Ollama (local dev) | DashScope (production) | Gemini (API) |
-|---------|-------------------|----------------------|--------------|
-| `EMBEDDING_PROVIDER` | `ollama` | `dashscope` | `ollama` or `dashscope` |
-| `LLM_PROVIDER` | `ollama` | `dashscope` | `gemini` |
-| Model (embed) | `bge-m3` | `text-embedding-v3` | N/A |
-| Model (LLM) | `qwen2.5:14b` | `qwen-plus` | `gemini-2.5-flash` |
+| Setting | Local Embeddings | LLM |
+|---------|-------------------|-----|
+| `EMBEDDING_PROVIDER` | `ollama` | N/A |
+| `LLM_PROVIDER` | N/A | `gemini` |
+| Model (embed) | `bge-m3` | N/A |
+| Model (LLM) | N/A | `gemini-2.5-flash` |
 
 ---
 

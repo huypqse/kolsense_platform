@@ -1,7 +1,7 @@
 # System Architecture — KolSense RAG Platform
 
-> **Internal Engineering Documentation** — v1.0 — Generated 2026-05-15
-> Language: Go 1.25 | Database: PostgreSQL 16 + pgvector | AI: Ollama / DashScope
+> Internal Engineering Documentation — v1.0 — Generated 2026-05-15
+> Language: Go 1.25 | Database: PostgreSQL 16 + pgvector | AI: Gemini (LLM) / Ollama (Embeddings)
 
 ---
 
@@ -22,8 +22,7 @@ A marketer pastes a free-text campaign brief (Vietnamese or English) → the sys
 | DB Driver | pgx/v5 + pgxpool |
 | Embedding – Local | Ollama `/api/embed` (bge-m3, 1536-dim) |
 | Embedding – Cloud | Alibaba DashScope `text-embedding-v3` |
-| LLM – Local | Ollama `/api/chat` (qwen2.5:14b) |
-| LLM – Cloud | DashScope `qwen-plus` (OpenAI-compatible) |
+| LLM | Gemini API (`gemini-2.5-flash`) |
 | PDF Parsing | pdfcpu |
 | Config | Viper (env-file + OS env) |
 | Logging | Uber Zap (structured JSON) |
@@ -59,8 +58,7 @@ graph TD
         SC --> BH
         BH --> PRB[prompt.Builder<br/>Go template]
         PRB --> LLM[llm.Client<br/>interface]
-        LLM --> OL[OllamaClient<br/>qwen2.5:14b]
-        LLM --> DL[DashScopeClient<br/>qwen-plus]
+        LLM --> GL[GeminiClient<br/>gemini-2.5-flash]
         BH --> Client
     end
 
@@ -328,7 +326,7 @@ FitScore = 0.40 * Similarity
 - Structured brief fields (category, platform, goal, budget, audience)
 - Top-N KOL entries with fit score, engagement %, ROI, fee range, score breakdown, and up to 2 text excerpts from retrieved chunks
 
-The rendered context is passed as the user prompt; the LLM (Qwen) is instructed (system prompt) to produce a Vietnamese-language recommendation report covering shortlist rationale, strengths/weaknesses, budget allocation, risks, and final recommendation.
+The rendered context is passed as the user prompt; the LLM (Gemini) is instructed (system prompt) to produce a Vietnamese-language recommendation report covering shortlist rationale, strengths/weaknesses, budget allocation, risks, and final recommendation.
 
 ---
 

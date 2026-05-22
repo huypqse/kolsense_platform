@@ -47,8 +47,6 @@ migrate:
 pull-models:
 	@echo "→ Pulling bge-m3 embedding model..."
 	docker exec kolsense-ollama ollama pull bge-m3
-	@echo "→ Pulling qwen2.5:14b LLM model..."
-	docker exec kolsense-ollama ollama pull qwen2.5:14b
 
 # ─── Test ──────────────────────────────────────────────────────────────────────
 test:

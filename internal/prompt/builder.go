@@ -1,4 +1,4 @@
-// Package prompt assembles RAG context prompts for the Qwen LLM.
+// Package prompt assembles RAG context prompts for the Gemini LLM.
 package prompt
 
 import (

@@ -28,7 +28,6 @@ services:
       - ollama_data:/root/.ollama
     # After first start, pull models:
     #   docker exec kolsense-ollama ollama pull bge-m3
-    #   docker exec kolsense-ollama ollama pull qwen2.5:14b
 
   api:
     build:
